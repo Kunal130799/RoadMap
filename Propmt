@@ -1,0 +1,83 @@
+I have a single-file HTML learning-roadmap tracker (Kunal_Roadmap_Tracker.html) that
+I want converted into a proper React project and deployed to Vercel so I can access
+and update it from any device — but it must be private, accessible only to me via
+a passcode.
+
+CONTEXT
+The HTML file contains:
+- A DATA array (phases → steps → checkbox items, DSA topics, resource links,
+  capstone slices, exit-bar checklists)
+- Checkbox state + per-phase notes textareas
+- Progress bars computed from checked/total items
+- Dark theme styling
+- Currently persists to localStorage
+
+TASK
+
+1. Scaffold a new Vite + React (JavaScript, not TS) project.
+
+2. Port the DATA array from the HTML file into a `src/data/roadmapData.js` module,
+   preserving every phase, step, item, resource link, capstone slice, and exit-bar
+   entry exactly as-is — don't drop or summarize any content.
+
+3. Rebuild the UI as React components:
+   - PhaseCard (collapsible, shows progress bar, contains StepList)
+   - StepList / StepItem (checkbox + label + resource links)
+   - DsaPanel (the 14-topic DSA checklist, separate from normal steps)
+   - ExitBarChecklist
+   - NotesBox (textarea per phase)
+   - OverallProgressBar (sticky header)
+   Keep the same dark visual style (colors, spacing, collapsible cards) as the
+   original HTML — recreate it with plain CSS, no UI library needed.
+
+4. AUTHENTICATION — simple single-passcode gate, no third-party auth service:
+   - Env var `ROADMAP_PASSCODE` holds the secret passcode (set in Vercel dashboard,
+     never committed to the repo).
+   - A `/login` page: single password input, submits to a serverless API route
+     `/api/login`.
+   - `/api/login` compares the submitted value to `ROADMAP_PASSCODE`. On match,
+     it sets an httpOnly, Secure, SameSite=Strict cookie named `roadmap_auth` whose
+     value is an HMAC-SHA256 of a fixed string signed with a second secret env var
+     `AUTH_SECRET` (so the cookie value itself is never the plain passcode).
+   - Add Vercel Edge Middleware (`middleware.js`) that runs on every request
+     (including `/api/state`): it recomputes the expected HMAC and compares it to
+     the `roadmap_auth` cookie. If missing or invalid, redirect page requests to
+     `/login` and return 401 for API requests.
+   - `/api/login` should rate-limit or add a short delay on failed attempts to
+     deter brute-forcing (simple in-memory or KV-based counter is fine).
+   - Add a "Log out" button in the app header that clears the cookie via a
+     `/api/logout` route.
+
+5. PERSISTENCE — with fallback strategy:
+   - Add Vercel KV (Upstash Redis) for storage: one JSON blob keyed by a fixed
+     key (e.g. "kunal-roadmap-state") containing all checkbox states and notes.
+   - `/api/state` GET (load) and POST (save) routes — both protected by the auth
+     middleware from step 4.
+   - On the client, debounce writes (~600ms after the last change) before POSTing,
+     and show a brief "Saved ✓" toast like the original.
+   - On load, GET from the API; if it fails (e.g. KV not yet configured), fall
+     back to localStorage so the app still works immediately without breaking.
+
+6. Add a `.env.example` listing all required env vars (ROADMAP_PASSCODE,
+   AUTH_SECRET, KV_REST_API_URL, KV_REST_API_TOKEN) with comments explaining each,
+   and a README section covering:
+   - how to set env vars in the Vercel dashboard (never in code / never in git)
+   - how to create and link a free Vercel KV store
+   - that the app works via localStorage fallback even before KV is linked, but
+     the passcode gate is required regardless
+   - how to change the passcode later (just update the env var + redeploy)
+
+7. Set up the project for one-command deploy: `vercel deploy --prod`. Include
+   `vercel.json` only if actually needed for the middleware routing.
+
+8. Keep everything else simple — no user accounts, no OAuth, no multi-user
+   support. This is a single-person private tracker protected by one shared
+   secret. Don't over-engineer beyond that.
+
+DELIVERABLE
+A working Vite+React project in the current directory, buildable with
+`npm run build`, ready to `vercel deploy`. Walk me through the exact steps to:
+1. Set the ROADMAP_PASSCODE and AUTH_SECRET env vars in Vercel
+2. Link Vercel KV
+3. Deploy
+4. Log in for the first time
