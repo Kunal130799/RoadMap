@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Kunal's .NET + AI Roadmap Tracker</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#171a21; --border:#262b36; --text:#e6e8ec; --muted:#9aa3b2;
+    --accent:#5b8def; --accent2:#22c55e; --warn:#f59e0b;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--text); line-height:1.5;
+  }
+  header{
+    padding:28px 20px 18px; text-align:center; border-bottom:1px solid var(--border);
+    position:sticky; top:0; background:var(--bg); z-index:10;
+  }
+  header h1{margin:0 0 6px; font-size:22px;}
+  header p{margin:0; color:var(--muted); font-size:14px;}
+  .overall-bar-wrap{max-width:600px; margin:14px auto 0;}
+  .container{max-width:900px; margin:0 auto; padding:24px 16px 80px;}
+  .phase{
+    background:var(--card); border:1px solid var(--border); border-radius:12px;
+    margin-bottom:20px; overflow:hidden;
+  }
+  .phase-head{
+    padding:16px 18px; cursor:pointer; display:flex; justify-content:space-between;
+    align-items:center; gap:12px; user-select:none;
+  }
+  .phase-head:hover{background:#1b1f29;}
+  .phase-title{font-size:16px; font-weight:600;}
+  .phase-sub{color:var(--muted); font-size:12.5px; margin-top:2px;}
+  .chevron{transition:transform .2s; color:var(--muted); font-size:14px;}
+  .phase.open .chevron{transform:rotate(90deg);}
+  .phase-body{display:none; padding:0 18px 18px;}
+  .phase.open .phase-body{display:block;}
+  .bar-track{
+    background:#262b36; border-radius:6px; height:8px; overflow:hidden; flex:1;
+  }
+  .bar-fill{
+    height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2));
+    width:0%; transition:width .3s;
+  }
+  .bar-row{display:flex; align-items:center; gap:10px; margin-top:6px;}
+  .bar-pct{font-size:12px; color:var(--muted); min-width:34px; text-align:right;}
+  .step{
+    border-top:1px solid var(--border); padding:12px 0;
+  }
+  .step:first-child{border-top:none;}
+  .step label.item{
+    display:flex; align-items:flex-start; gap:10px; cursor:pointer; margin:6px 0;
+    font-size:14.5px;
+  }
+  .step label.item input{margin-top:3px; width:16px; height:16px; accent-color:var(--accent2); cursor:pointer; flex-shrink:0;}
+  .step-title{font-weight:600; font-size:14.5px; margin-bottom:6px;}
+  .res{color:var(--muted); font-size:13px; margin:4px 0 10px 26px;}
+  .res a{color:var(--accent); text-decoration:none;}
+  .res a:hover{text-decoration:underline;}
+  .tag{
+    display:inline-block; font-size:10.5px; padding:1px 6px; border-radius:4px;
+    margin-left:6px; vertical-align:middle;
+  }
+  .tag.free{background:#14321f; color:#4ade80;}
+  .tag.owned{background:#1e2f4d; color:#7db3ff;}
+  .tag.udemy{background:#3a2a12; color:#f5a524;}
+  textarea{
+    width:100%; min-height:60px; background:#0f1115; border:1px solid var(--border);
+    border-radius:8px; color:var(--text); padding:8px 10px; font-size:13px;
+    font-family:inherit; resize:vertical; margin-top:6px;
+  }
+  .notes-label{font-size:12px; color:var(--muted); margin-top:14px; display:block;}
+  .exitbar{
+    margin-top:14px; padding:12px 14px; background:#151a10; border:1px solid #2e3a1a;
+    border-radius:8px;
+  }
+  .exitbar-title{font-size:12.5px; font-weight:600; color:var(--warn); margin-bottom:8px;}
+  .dsa-grid{display:grid; grid-template-columns:1fr; gap:6px;}
+  .dsa-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:8px 10px; background:#0f1115; border:1px solid var(--border); border-radius:8px;
+  }
+  .dsa-row label{display:flex; align-items:center; gap:10px; font-size:13.5px; cursor:pointer;}
+  .dsa-row input{width:16px; height:16px; accent-color:var(--accent2); cursor:pointer;}
+  .dsa-row a{color:var(--accent); font-size:12px; text-decoration:none; white-space:nowrap;}
+  .dsa-row a:hover{text-decoration:underline;}
+  .footer-note{text-align:center; color:var(--muted); font-size:12px; margin-top:10px;}
+  .reset-btn{
+    background:none; border:1px solid var(--border); color:var(--muted); font-size:11px;
+    padding:4px 10px; border-radius:6px; cursor:pointer; margin-top:16px;
+  }
+  .reset-btn:hover{border-color:#b91c1c; color:#f87171;}
+  .savepill{
+    position:fixed; bottom:16px; right:16px; background:var(--accent2); color:#04150a;
+    font-size:12px; font-weight:600; padding:7px 14px; border-radius:20px;
+    opacity:0; transition:opacity .3s; pointer-events:none;
+  }
+  .savepill.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🧭 Kunal's Full-Stack .NET + AI Roadmap</h1>
+  <p>Depth over speed · Prerequisite-first · 10–15 hrs/week</p>
+  <div class="overall-bar-wrap">
+    <div class="bar-row">
+      <div class="bar-track"><div class="bar-fill" id="overall-fill"></div></div>
+      <div class="bar-pct" id="overall-pct">0%</div>
+    </div>
+  </div>
+</header>
+
+<div class="container" id="app"></div>
+
+<div class="savepill" id="savepill">Saved ✓</div>
+
+<script>
+/* ---------- DATA ---------- */
+const DATA = [
+  {
+    id:"phase0", title:"Phase 0 — Setup", sub:"One sitting, before anything else",
+    steps:[
+      { id:"p0-slots", title:"Weekly time slots fixed", items:[
+        {id:"p0-1", text:"DSA slots picked (e.g. Mon/Wed/Fri, ~45 min)"},
+        {id:"p0-2", text:"Foreground learning + capstone slots picked (bulk of hrs)"},
+      ]},
+      { id:"p0-log", title:"Learning log started", items:[
+        {id:"p0-3", text:"Log file/note created — one line per session (learned / confused)"},
+      ]},
+      { id:"p0-repo", title:"Capstone repo created", items:[
+        {id:"p0-4", text:"Empty repo created with README plan (4 slices)"},
+      ]},
+      { id:"p0-audit", title:"Portfolio audit — deferred until after Phase 1", items:[
+        {id:"p0-5", text:"(Do this AFTER Phase 1 — you'll have the vocabulary to audit your own architecture honestly)"},
+      ]},
+    ]
+  },
+  {
+    id:"dsa", title:"Continuous Thread A — DSA", sub:"Runs the whole time · Namaste DSA Sheet, in C#",
+    isDsa:true,
+    resource:'✅ <a href="https://namastedev.com/namaste-dsa-sheet" target="_blank">Namaste DSA Sheet</a> — 165 problems, your complete plan. Add nothing else.',
+    dsaTopics:[
+      "1. Foundation","2. Arrays","3. Linked List","4. Strings","5. Stack & Queues",
+      "6. Binary Search","7. Two Pointers & Sliding Window","8. Binary Tree","9. Binary Search Tree",
+      "10. Heap","11. Backtracking","12. Greedy","13. Dynamic Programming","14. Graphs"
+    ]
+  },
+  {
+    id:"frontend", title:"Continuous Thread B — Frontend", sub:"Woven into every phase · Namaste React",
+    steps:[
+      { id:"fe-1", title:"Foundations", items:[
+        {id:"fe-1a", text:"JavaScript solid (closures, promises, event loop) — only if shaky"},
+        {id:"fe-1b", text:"React fundamentals + hooks"},
+        {id:"fe-1c", text:"Custom hooks"},
+      ], res:'✅ <a href="https://namastedev.com/learn" target="_blank">Namaste React</a> (your spine) <span class="tag owned">OWNED</span> · 🆓 <a href="https://react.dev" target="_blank">react.dev</a> docs <span class="tag free">FREE</span> · 🆓 Namaste JavaScript (if needed) <span class="tag free">FREE</span>'},
+      { id:"fe-2", title:"Application-level skills", items:[
+        {id:"fe-2a", text:"State management (Redux / context)"},
+        {id:"fe-2b", text:"Data fetching"},
+        {id:"fe-2c", text:"Forms & validation"},
+        {id:"fe-2d", text:"Real-time (SignalR client)"},
+        {id:"fe-2e", text:"Render performance"},
+        {id:"fe-2f", text:"TypeScript fluency"},
+      ], res:'🆓 <a href="https://www.typescriptlang.org/docs/handbook/intro.html" target="_blank">TypeScript Handbook</a> <span class="tag free">FREE</span>'},
+    ]
+  },
+  {
+    id:"phase1", title:"Phase 1 — Backend / C# / .NET depth", sub:"~6–8 weeks · Go from \"I use these\" to \"I can defend every one cold\"",
+    steps:[
+      { id:"p1-1", title:"1.1 C# language depth — the atoms", items:[
+        {id:"p1-1a", text:"Types, records, pattern matching, LINQ (deferred execution), IDisposable/using, generics"},
+        {id:"p1-1b", text:"Async/await properly: state machine, Task vs ValueTask, ConfigureAwait, cancellation tokens, deadlocks, thread-pool starvation"},
+        {id:"p1-1c", text:"GC basics: generations, allocations, when things get collected"},
+      ], res:'🆓 <a href="https://learn.microsoft.com/en-us/dotnet/csharp/" target="_blank">Microsoft Learn — C# guide</a> <span class="tag free">FREE</span> · 🆓 <a href="https://blog.stephencleary.com/" target="_blank">Stephen Cleary\'s blog</a> + "There Is No Thread" <span class="tag free">FREE</span> · 📘 Concurrency in C# Cookbook (optional book)'},
+      { id:"p1-2", title:"1.2 ASP.NET Core Web API — the framework", items:[
+        {id:"p1-2a", text:"Middleware pipeline (and why order matters), routing, model binding, filters"},
+        {id:"p1-2b", text:"Dependency Injection: lifetimes (singleton/scoped/transient) + captive-dependency trap"},
+        {id:"p1-2c", text:"Minimal APIs vs controllers, configuration, logging, error handling"},
+      ], res:'🆓 <a href="https://learn.microsoft.com/en-us/aspnet/core/" target="_blank">Microsoft Learn — ASP.NET Core fundamentals</a> <span class="tag free">FREE</span> · 🆓 <a href="https://andrewlock.net/" target="_blank">Andrew Lock</a> & <a href="https://www.stevejgordon.co.uk/" target="_blank">Steve Gordon</a> blogs <span class="tag free">FREE</span>'},
+      { id:"p1-3", title:"1.3 EF Core & data access — persistence", items:[
+        {id:"p1-3a", text:"Change tracking, LINQ → SQL translation"},
+        {id:"p1-3b", text:"N+1 problem — how to spot/kill it, AsNoTracking"},
+        {id:"p1-3c", text:"Transactions, optimistic concurrency, migrations under control, split queries"},
+      ], res:'🆓 <a href="https://learn.microsoft.com/en-us/ef/core/" target="_blank">Microsoft Learn — EF Core docs</a> <span class="tag free">FREE</span> · 📘 EF Core in Action (Jon Smith)'},
+      { id:"p1-4", title:"1.4 Auth & security", items:[
+        {id:"p1-4a", text:"JWT + refresh tokens, RBAC"},
+        {id:"p1-4b", text:"Password/secret handling, common OWASP issues at API level"},
+      ], res:'🆓 <a href="https://learn.microsoft.com/en-us/aspnet/core/security/" target="_blank">Microsoft Learn — ASP.NET Core security</a> <span class="tag free">FREE</span> · 🆓 Milan Jovanović\'s auth articles <span class="tag free">FREE</span>'},
+      { id:"p1-5", title:"1.5 Architecture & patterns — ties it together", items:[
+        {id:"p1-5a", text:"Clean Architecture, CQRS + MediatR"},
+        {id:"p1-5b", text:"Repository vs EF-as-repository, validation (FluentValidation)"},
+        {id:"p1-5c", text:"When these patterns are overkill — articulate it"},
+      ], res:'🆓 <a href="https://www.milanjovanovic.tech/" target="_blank">Milan Jovanović</a> (blog + YouTube) <span class="tag free">FREE</span> · 🆓 <a href="https://github.com/jasontaylordev/CleanArchitecture" target="_blank">Jason Taylor Clean Architecture template</a> <span class="tag free">FREE</span> · 🎥 optional Udemy ASP.NET Core + Clean Architecture (2025/26-rated) <span class="tag udemy">UDEMY</span>'},
+    ],
+    capstone:"Domain model + Web API for the capstone — clean architecture, EF Core, JWT auth + RBAC, core CRUD endpoints.",
+    exitbar:[
+      "Can whiteboard: request → Kestrel → middleware → controller → EF → DB",
+      "Can name a deadlock you could cause with async + 3 fixes",
+      "Can defend every architectural choice in your capstone from first principles"
+    ]
+  },
+  {
+    id:"phase2", title:"Phase 2 — Database + System Design", sub:"~8–10 weeks · DB depth is the foundation for system design",
+    steps:[
+      { id:"p2-1", title:"2.1 SQL fundamentals", items:[
+        {id:"p2-1a", text:"SELECT/JOIN/GROUP BY/subqueries/CTEs, set-based thinking (skim if solid)"},
+      ], res:'🆓 <a href="https://sqlbolt.com/" target="_blank">SQLBolt</a> (interactive) <span class="tag free">FREE</span> · 🆓 Microsoft Learn — T-SQL <span class="tag free">FREE</span>'},
+      { id:"p2-2", title:"2.2 Indexing — the depth that makes you dangerous", items:[
+        {id:"p2-2a", text:"Clustered vs non-clustered, covering indexes"},
+        {id:"p2-2b", text:"Composite index column order, when an index HURTS"},
+      ], res:'🆓 <a href="https://use-the-index-luke.com/" target="_blank">use-the-index-luke.com</a> (canonical) <span class="tag free">FREE</span> · 📘 SQL Performance Explained'},
+      { id:"p2-3", title:"2.3 Query tuning & execution plans", items:[
+        {id:"p2-3a", text:"Reading an execution plan, SARGability, statistics"},
+        {id:"p2-3b", text:"Why a query goes parallel, common anti-patterns"},
+      ], res:'🆓 <a href="https://www.brentozar.com/" target="_blank">Brent Ozar</a> free blog/videos <span class="tag free">FREE</span>'},
+      { id:"p2-4", title:"2.4 Transactions, isolation & concurrency", items:[
+        {id:"p2-4a", text:"Isolation levels and the anomaly each prevents"},
+        {id:"p2-4b", text:"Locking vs blocking vs deadlocks, NOLOCK and why it's a trap"},
+      ], res:'🆓 Microsoft Learn + Brent Ozar <span class="tag free">FREE</span>'},
+      { id:"p2-5", title:"2.5 Schema design", items:[
+        {id:"p2-5a", text:"Normalization vs deliberate denormalization, keys/constraints"},
+        {id:"p2-5b", text:"SQL Server vs PostgreSQL vs Cosmos — articulate the tradeoffs"},
+      ]},
+      { id:"p2-6", title:"2.6 System design — building blocks", items:[
+        {id:"p2-6a", text:"Caching layers, message queues, load balancing"},
+        {id:"p2-6b", text:"Horizontal vs vertical scaling, CAP/consistency in plain terms, idempotency"},
+      ], res:'🆓 <a href="https://github.com/donnemartin/system-design-primer" target="_blank">System Design Primer</a> <span class="tag free">FREE</span> · 📘 ByteByteGo (Alex Xu)'},
+      { id:"p2-7", title:"2.7 System design — patterns", items:[
+        {id:"p2-7a", text:"Rate limiting, retry/circuit-breaker, outbox pattern"},
+        {id:"p2-7b", text:"Event-driven basics, observability"},
+      ], res:'🆓 <a href="https://www.milanjovanovic.tech/" target="_blank">Milan Jovanović</a> — .NET distributed patterns <span class="tag free">FREE</span> · 🆓 Microsoft eShop reference app <span class="tag free">FREE</span>'},
+      { id:"p2-8", title:"2.8 The big decision", items:[
+        {id:"p2-8a", text:"Monolith vs microservices from first principles (coupling, deployment, operational cost)"},
+        {id:"p2-8b", text:"Turn your real migration report into a crisp interview story"},
+      ]},
+      { id:"p2-9", title:"2.9 Practice (most important part)", items:[
+        {id:"p2-9a", text:"Design 8–10 systems out loud on paper/Excalidraw (URL shortener, rate limiter, notification service, 100× SLA Dashboard, etc.)"},
+      ]},
+    ],
+    capstone:"Design + tune the real schema. Add Hangfire background jobs, blob storage, Redis caching, SignalR real-time status, rate limiting, OpenTelemetry/App Insights. Dockerize. CI/CD via Azure DevOps YAML.",
+    exitbar:[
+      "Can run a 45-min \"design system X for 1M users\" discussion end to end",
+      "Can take a slow query and make it fast — AND explain why",
+      "Can re-tell your microservices→monolith call from first principles"
+    ]
+  },
+  {
+    id:"phase3", title:"Phase 3 — AI / Agentic (your moat)", sub:"~6–8 weeks · Deepen + migrate, not learn cold",
+    steps:[
+      { id:"p3-1", title:"3.1 LLM & RAG fundamentals", items:[
+        {id:"p3-1a", text:"Embeddings, chunking strategies (fixed/semantic/overlap)"},
+        {id:"p3-1b", text:"Vector search, hybrid search, re-ranking, why naive RAG hallucinates"},
+      ], res:'🆓 Microsoft Learn — Azure AI Search RAG docs <span class="tag free">FREE</span>'},
+      { id:"p3-2", title:"3.2 Microsoft.Extensions.AI — the .NET AI foundation", items:[
+        {id:"p3-2a", text:"IChatClient, IEmbeddingGenerator, DI-based provider swapping"},
+      ], res:'🆓 Microsoft Learn <span class="tag free">FREE</span> · 🆓 MS devblogs "Better Together" series <span class="tag free">FREE</span>'},
+      { id:"p3-3", title:"3.3 Semantic Kernel — deep", items:[
+        {id:"p3-3a", text:"Plugins, memory, prompt templates, filters — articulate what you already use"},
+      ], res:'🆓 Microsoft Learn — Semantic Kernel <span class="tag free">FREE</span> · 🎥 optional Udemy "Understanding Semantic Kernel SDK" / "Semantic Kernel C#" <span class="tag udemy">UDEMY</span>'},
+      { id:"p3-4", title:"3.4 Microsoft Agent Framework (MAF) — the current layer", items:[
+        {id:"p3-4a", text:"Agents, tools/function calling, multi-agent workflows"},
+        {id:"p3-4b", text:"MCP integration, human-in-the-loop, checkpointing"},
+        {id:"p3-4c", text:"⭐ Migrate one existing SK project to MAF — standout portfolio move"},
+      ], res:'🆓 Microsoft Learn — Agent Framework docs + "from Semantic Kernel" migration guide <span class="tag free">FREE</span>'},
+      { id:"p3-5", title:"3.5 Evaluation & production", items:[
+        {id:"p3-5a", text:"RAG/agent evaluation: groundedness, faithfulness, relevance"},
+        {id:"p3-5b", text:"Token cost management, observability, prompt-injection safety, structured outputs"},
+      ], res:'🆓 Microsoft Learn <span class="tag free">FREE</span> · 🎥 optional "Generative AI for .NET Developers with Azure AI Services" <span class="tag udemy">UDEMY</span>'},
+    ],
+    capstone:"RAG pipeline (chunk + embed uploaded docs → vector search) + an agentic assistant on MAF with tools (search docs, summarize, create tasks) + a basic eval harness.",
+    exitbar:[
+      "Can whiteboard a full RAG pipeline + 3 quality-degraders and fixes",
+      "Can say when to use one LLM call vs an agent vs multi-agent (incl. \"just write a function\")",
+      "Can walk your MAF assistant's architecture"
+    ]
+  },
+  {
+    id:"interview", title:"Interview Readiness", sub:"Light in Phase 1, ramps up from Phase 2",
+    steps:[
+      { id:"ir-1", title:"Ongoing practices", items:[
+        {id:"ir-1a", text:"Each exit bar turned into out-loud answers (record yourself)"},
+        {id:"ir-1b", text:"Each capstone slice → architecture walkthrough + STAR story"},
+        {id:"ir-1c", text:"Weekly mock interviews (DSA + system design + capstone defense)"},
+        {id:"ir-1d", text:"GitHub cleaned up + 1–2 technical write-ups published"},
+        {id:"ir-1e", text:"(Optional) AZ-204 certification"},
+      ]},
+    ]
+  },
+];
+
+/* ---------- STORAGE ---------- */
+const STORE_KEY = "kunal_roadmap_v1";
+function loadState(){
+  try{ return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }catch(e){ return {}; }
+}
+function saveState(state){
+  localStorage.setItem(STORE_KEY, JSON.stringify(state));
+  const pill = document.getElementById('savepill');
+  pill.classList.add('show');
+  clearTimeout(window._pillTimer);
+  window._pillTimer = setTimeout(()=>pill.classList.remove('show'), 900);
+}
+let state = loadState();
+
+/* ---------- RENDER ---------- */
+const app = document.getElementById('app');
+
+function countItems(phase){
+  let total=0, done=0;
+  if(phase.isDsa){
+    phase.dsaTopics.forEach((t,i)=>{
+      total++; if(state['dsa-'+i]) done++;
+    });
+  } else {
+    phase.steps.forEach(step=>{
+      step.items.forEach(it=>{
+        total++; if(state[it.id]) done++;
+      });
+    });
+  }
+  return {total, done};
+}
+
+function renderPhase(phase){
+  const {total, done} = countItems(phase);
+  const pct = total ? Math.round(done/total*100) : 0;
+
+  const div = document.createElement('div');
+  div.className = 'phase';
+  div.id = 'card-'+phase.id;
+
+  const head = document.createElement('div');
+  head.className = 'phase-head';
+  head.innerHTML = `
+    <div style="flex:1">
+      <div class="phase-title">${phase.title}</div>
+      <div class="phase-sub">${phase.sub}</div>
+      <div class="bar-row">
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+        <div class="bar-pct">${pct}%</div>
+      </div>
+    </div>
+    <div class="chevron">▶</div>
+  `;
+  head.onclick = () => { div.classList.toggle('open'); };
+  div.appendChild(head);
+
+  const body = document.createElement('div');
+  body.className = 'phase-body';
+
+  if(phase.resource){
+    const r = document.createElement('div');
+    r.className = 'res';
+    r.style.margin = '4px 0 14px 0';
+    r.innerHTML = phase.resource;
+    body.appendChild(r);
+  }
+
+  if(phase.isDsa){
+    const grid = document.createElement('div');
+    grid.className = 'dsa-grid';
+    phase.dsaTopics.forEach((topic,i)=>{
+      const row = document.createElement('div');
+      row.className = 'dsa-row';
+      const key = 'dsa-'+i;
+      row.innerHTML = `
+        <label>
+          <input type="checkbox" ${state[key]?'checked':''} data-key="${key}">
+          <span>${topic}</span>
+        </label>
+        <a href="https://namastedev.com/namaste-dsa-sheet" target="_blank">Open sheet →</a>
+      `;
+      grid.appendChild(row);
+    });
+    body.appendChild(grid);
+    const note = document.createElement('div');
+    note.className = 'footer-note';
+    note.style.textAlign='left';
+    note.style.marginTop='10px';
+    note.innerHTML = 'Method per problem: attempt 20 min → study optimal → re-solve from memory 2 days later. ~3–5 problems/week.';
+    body.appendChild(note);
+  } else {
+    phase.steps.forEach(step=>{
+      const s = document.createElement('div');
+      s.className = 'step';
+      const stitle = document.createElement('div');
+      stitle.className = 'step-title';
+      stitle.textContent = step.title;
+      s.appendChild(stitle);
+
+      step.items.forEach(it=>{
+        const label = document.createElement('label');
+        label.className = 'item';
+        label.innerHTML = `<input type="checkbox" ${state[it.id]?'checked':''} data-key="${it.id}"><span>${it.text}</span>`;
+        s.appendChild(label);
+      });
+
+      if(step.res){
+        const r = document.createElement('div');
+        r.className = 'res';
+        r.innerHTML = step.res;
+        s.appendChild(r);
+      }
+      body.appendChild(s);
+    });
+  }
+
+  if(phase.capstone){
+    const cs = document.createElement('div');
+    cs.className = 'step';
+    const key = phase.id+'-capstone';
+    cs.innerHTML = `
+      <div class="step-title">🏗 Capstone slice</div>
+      <label class="item"><input type="checkbox" ${state[key]?'checked':''} data-key="${key}"><span>${phase.capstone}</span></label>
+    `;
+    body.appendChild(cs);
+  }
+
+  if(phase.exitbar){
+    const eb = document.createElement('div');
+    eb.className = 'exitbar';
+    eb.innerHTML = `<div class="exitbar-title">✅ EXIT BAR — must pass all before moving on</div>`;
+    phase.exitbar.forEach((text,i)=>{
+      const key = phase.id+'-exit-'+i;
+      const label = document.createElement('label');
+      label.className = 'item';
+      label.innerHTML = `<input type="checkbox" ${state[key]?'checked':''} data-key="${key}"><span>${text}</span>`;
+      eb.appendChild(label);
+    });
+    body.appendChild(eb);
+  }
+
+  const notesKey = phase.id+'-notes';
+  const notesLabel = document.createElement('label');
+  notesLabel.className = 'notes-label';
+  notesLabel.textContent = '📝 Notes / doubts for this phase';
+  body.appendChild(notesLabel);
+  const textarea = document.createElement('textarea');
+  textarea.dataset.key = notesKey;
+  textarea.value = state[notesKey] || '';
+  textarea.placeholder = 'What clicked, what\'s still shaky, questions to bring to the coach...';
+  textarea.oninput = () => { state[notesKey] = textarea.value; saveState(state); };
+  body.appendChild(textarea);
+
+  div.appendChild(body);
+  return div;
+}
+
+function renderAll(){
+  app.innerHTML = '';
+  DATA.forEach(phase => app.appendChild(renderPhase(phase)));
+  // open phase0 by default first time
+  if(!localStorage.getItem(STORE_KEY)){
+    document.getElementById('card-phase0').classList.add('open');
+  }
+  attachHandlers();
+  updateOverall();
+}
+
+function attachHandlers(){
+  document.querySelectorAll('input[type=checkbox][data-key]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      state[cb.dataset.key] = cb.checked;
+      saveState(state);
+      updateOverall();
+      refreshPhaseBar(cb);
+    });
+  });
+}
+
+function refreshPhaseBar(cb){
+  const card = cb.closest('.phase');
+  const phaseId = card.id.replace('card-','');
+  const phase = DATA.find(p=>p.id===phaseId);
+  const {total, done} = countItems(phase);
+  const pct = total ? Math.round(done/total*100) : 0;
+  const fill = card.querySelector('.phase-head .bar-fill');
+  const pctEl = card.querySelector('.phase-head .bar-pct');
+  fill.style.width = pct+'%';
+  pctEl.textContent = pct+'%';
+}
+
+function updateOverall(){
+  let total=0, done=0;
+  DATA.forEach(phase=>{
+    const c = countItems(phase);
+    total += c.total; done += c.done;
+  });
+  const pct = total ? Math.round(done/total*100) : 0;
+  document.getElementById('overall-fill').style.width = pct+'%';
+  document.getElementById('overall-pct').textContent = pct+'%';
+}
+
+renderAll();
+</script>
+
+</body>
+</html>
